@@ -1,0 +1,164 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Input Test - Typographic Nesting</title>
+    <style>
+      body {
+        background: #000;
+        color: #fff;
+        font-family: monospace;
+        padding: 20px;
+      }
+      #test-results {
+        margin-top: 20px;
+        padding: 10px;
+        border: 1px solid #333;
+        background: #111;
+      }
+      button {
+        padding: 10px;
+        margin: 5px;
+        background: #333;
+        color: #fff;
+        border: none;
+        cursor: pointer;
+      }
+      button:hover {
+        background: #555;
+      }
+      #input-handler {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+        opacity: 0;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Input Test Page</h1>
+    <p>
+      This page tests the input functionality without the full app complexity.
+    </p>
+
+    <input
+      type="text"
+      id="input-handler"
+      autocomplete="off"
+      spellcheck="false"
+    />
+
+    <div>
+      <button onclick="testSingleChar()">Test Single Character (A)</button>
+      <button onclick="testMultipleChars()">
+        Test Multiple Characters (ABC)
+      </button>
+      <button onclick="testTyping()">Test Typing Simulation</button>
+      <button onclick="testJapanese()">Test Japanese (あ)</button>
+      <button onclick="clearResults()">Clear Results</button>
+    </div>
+
+    <div id="test-results">
+      <h3>Test Results:</h3>
+      <div id="results-log"></div>
+    </div>
+
+    <script type="module">
+      import { InputManager } from "./src/inputManager.js";
+
+      let characterCount = 0;
+      const resultsLog = document.getElementById("results-log");
+
+      function logResult(message) {
+        const timestamp = new Date().toLocaleTimeString();
+        const logEntry = document.createElement("div");
+        logEntry.style.margin = "5px 0";
+        logEntry.style.padding = "5px";
+        logEntry.style.borderLeft = "3px solid #4CAF50";
+        logEntry.innerHTML = `<strong>${timestamp}:</strong> ${message}`;
+        resultsLog.appendChild(logEntry);
+        resultsLog.scrollTop = resultsLog.scrollHeight;
+        console.log(message);
+      }
+
+      function handleCharacterAdd(char, isComposing) {
+        characterCount++;
+        logResult(
+          `Character added: "${char}" (${
+            isComposing ? "composing" : "confirmed"
+          }) - Total: ${characterCount}`
+        );
+      }
+
+      function handleCompositionUpdate(state) {
+        logResult(`Composition update: ${JSON.stringify(state)}`);
+      }
+
+      // Initialize InputManager
+      const inputElement = document.getElementById("input-handler");
+      const inputManager = new InputManager(
+        inputElement,
+        handleCharacterAdd,
+        handleCompositionUpdate
+      );
+
+      // Test functions
+      window.testSingleChar = function () {
+        logResult("🧪 Testing single character: A");
+        inputElement.focus();
+        inputElement.value = "A";
+        inputElement.dispatchEvent(new Event("input", { bubbles: true }));
+      };
+
+      window.testMultipleChars = function () {
+        logResult("🧪 Testing multiple characters: ABC");
+        inputElement.focus();
+        inputElement.value = "ABC";
+        inputElement.dispatchEvent(new Event("input", { bubbles: true }));
+      };
+
+      window.testTyping = function () {
+        logResult("🧪 Testing typing simulation");
+        const text = "HELLO";
+        let index = 0;
+
+        function typeNext() {
+          if (index < text.length) {
+            inputElement.focus();
+            inputElement.value = text[index];
+            inputElement.dispatchEvent(new Event("input", { bubbles: true }));
+            index++;
+            setTimeout(typeNext, 500);
+          }
+        }
+
+        typeNext();
+      };
+
+      window.testJapanese = function () {
+        logResult("🧪 Testing Japanese character: あ");
+        inputElement.focus();
+
+        // Simulate IME input sequence
+        inputElement.dispatchEvent(new CompositionEvent("compositionstart"));
+        inputElement.dispatchEvent(
+          new CompositionEvent("compositionupdate", { data: "あ" })
+        );
+        inputElement.dispatchEvent(
+          new CompositionEvent("compositionend", { data: "あ" })
+        );
+      };
+
+      window.clearResults = function () {
+        resultsLog.innerHTML = "";
+        characterCount = 0;
+        logResult("Results cleared");
+      };
+
+      // Auto-focus
+      inputElement.focus();
+      logResult("Input test page loaded and ready");
+    </script>
+  </body>
+</html>

@@ -1,0 +1,270 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Debug Page - Typographic Nesting</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        background-color: #000000;
+        color: #ffffff;
+        font-family: Helvetica, "Hiragino Kaku Gothic ProN",
+          "ヒラギノ角ゴ ProN W3", Meiryo, sans-serif;
+        overflow: hidden;
+        height: 100vh;
+        width: 100vw;
+      }
+
+      #canvas-container {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+      }
+
+      #text-canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+      }
+
+      #input-handler {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+        opacity: 0;
+        width: 1px;
+        height: 1px;
+        font-size: 16px;
+      }
+
+      #loading {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: #ffffff;
+        font-size: 18px;
+        z-index: 1000;
+      }
+
+      #debug-panel {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        background: rgba(0, 0, 0, 0.8);
+        color: #ffffff;
+        padding: 15px;
+        border-radius: 5px;
+        font-size: 12px;
+        z-index: 1000;
+        max-width: 300px;
+        max-height: 400px;
+        overflow-y: auto;
+      }
+
+      #test-buttons {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        z-index: 1000;
+      }
+
+      .test-btn {
+        display: block;
+        margin: 5px 0;
+        padding: 10px;
+        background: #333;
+        color: #fff;
+        border: none;
+        border-radius: 3px;
+        cursor: pointer;
+        font-size: 12px;
+      }
+
+      .test-btn:hover {
+        background: #555;
+      }
+
+      #instructions {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        color: #666666;
+        font-size: 14px;
+        z-index: 100;
+        opacity: 0.7;
+        transition: opacity 0.3s ease;
+        background: rgba(0, 0, 0, 0.5);
+        padding: 15px;
+        border-radius: 8px;
+        backdrop-filter: blur(10px);
+      }
+
+      #info {
+        position: fixed;
+        bottom: 20px;
+        right: 20px;
+        color: #666666;
+        font-size: 12px;
+        z-index: 100;
+        background: rgba(0, 0, 0, 0.5);
+        padding: 10px;
+        border-radius: 5px;
+        backdrop-filter: blur(10px);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="loading">Loading Typographic Nesting Art Generator...</div>
+    <div id="canvas-container">
+      <svg id="text-canvas" xmlns="http://www.w3.org/2000/svg"></svg>
+      <input
+        type="text"
+        id="input-handler"
+        autocomplete="off"
+        spellcheck="false"
+      />
+    </div>
+
+    <div id="debug-panel">
+      <h3>Debug Console</h3>
+      <div id="debug-log"></div>
+    </div>
+
+    <div id="test-buttons">
+      <button class="test-btn" onclick="testSingleChar()">Test: A</button>
+      <button class="test-btn" onclick="testMultipleChars()">Test: ABC</button>
+      <button class="test-btn" onclick="testJapanese()">Test: あ</button>
+      <button class="test-btn" onclick="clearAll()">Clear All</button>
+      <button class="test-btn" onclick="showDebugInfo()">Debug Info</button>
+    </div>
+
+    <div id="instructions">
+      <strong>Debug Mode</strong><br />
+      デバッグ情報がコンソールに出力されます<br />
+      左上のデバッグパネルでリアルタイム情報を確認
+    </div>
+
+    <div id="info">
+      <span id="char-count">Characters: 0</span><br />
+      <span id="performance">Performance: Loading...</span>
+    </div>
+
+    <script>
+      // Debug logging override
+      const originalLog = console.log;
+      const debugLog = document.getElementById("debug-log");
+
+      console.log = function (...args) {
+        originalLog.apply(console, args);
+        if (debugLog) {
+          const message = args
+            .map((arg) =>
+              typeof arg === "object"
+                ? JSON.stringify(arg, null, 2)
+                : String(arg)
+            )
+            .join(" ");
+
+          const logEntry = document.createElement("div");
+          logEntry.style.marginBottom = "5px";
+          logEntry.style.fontSize = "10px";
+          logEntry.style.borderLeft = "2px solid #4CAF50";
+          logEntry.style.paddingLeft = "5px";
+          logEntry.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
+
+          debugLog.appendChild(logEntry);
+          debugLog.scrollTop = debugLog.scrollHeight;
+
+          // Keep only last 20 entries
+          while (debugLog.children.length > 20) {
+            debugLog.removeChild(debugLog.firstChild);
+          }
+        }
+      };
+
+      function testSingleChar() {
+        const input = document.getElementById("input-handler");
+        console.log("🧪 Testing single character: A");
+        input.value = "A";
+        input.dispatchEvent(new Event("input"));
+      }
+
+      function testMultipleChars() {
+        const input = document.getElementById("input-handler");
+        console.log("🧪 Testing multiple characters: ABC");
+
+        // Test one by one
+        ["A", "B", "C"].forEach((char, index) => {
+          setTimeout(() => {
+            console.log(`🧪 Testing character ${index + 1}: ${char}`);
+            input.value = char;
+            input.dispatchEvent(new Event("input"));
+          }, index * 1000);
+        });
+      }
+
+      function testJapanese() {
+        const input = document.getElementById("input-handler");
+        console.log("🧪 Testing Japanese character: あ");
+
+        // Simulate IME input
+        input.dispatchEvent(new CompositionEvent("compositionstart"));
+        input.dispatchEvent(
+          new CompositionEvent("compositionupdate", { data: "あ" })
+        );
+        input.dispatchEvent(
+          new CompositionEvent("compositionend", { data: "あ" })
+        );
+      }
+
+      function clearAll() {
+        console.log("🧪 Testing clear all");
+        document.dispatchEvent(new CustomEvent("clearAll"));
+      }
+
+      function showDebugInfo() {
+        console.log("🔍 Debug Info:");
+        console.log(
+          "- Window size:",
+          window.innerWidth,
+          "x",
+          window.innerHeight
+        );
+        console.log("- User agent:", navigator.userAgent);
+        console.log("- DOM elements present:", {
+          canvas: !!document.getElementById("text-canvas"),
+          input: !!document.getElementById("input-handler"),
+          loading: !!document.getElementById("loading"),
+        });
+      }
+
+      // Auto-focus input
+      window.addEventListener("load", () => {
+        const input = document.getElementById("input-handler");
+        if (input) {
+          input.focus();
+          console.log("🎯 Input element focused");
+        }
+      });
+
+      // Monitor input focus
+      document.addEventListener("click", () => {
+        const input = document.getElementById("input-handler");
+        if (input) {
+          input.focus();
+        }
+      });
+    </script>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

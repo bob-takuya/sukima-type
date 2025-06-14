@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Debug Test - Typographic Nesting</title>
+    <style>
+      body {
+        background: #000;
+        color: #fff;
+        font-family: monospace;
+        margin: 0;
+        padding: 20px;
+      }
+
+      #canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+      }
+
+      #debug {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        background: rgba(0, 0, 0, 0.8);
+        padding: 10px;
+        border: 1px solid #333;
+        max-width: 400px;
+        font-size: 12px;
+        z-index: 100;
+      }
+
+      #controls {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        z-index: 100;
+      }
+
+      button {
+        margin: 5px;
+        padding: 10px;
+        background: #333;
+        color: white;
+        border: 1px solid #666;
+        cursor: pointer;
+      }
+    </style>
+  </head>
+  <body>
+    <svg
+      id="canvas"
+      xmlns="http://www.w3.org/2000/svg"
+      width="100%"
+      height="100%"
+      viewBox="0 0 1004 657"
+    ></svg>
+
+    <div id="controls">
+      <button onclick="clearCanvas()">Clear</button>
+      <button onclick="testSingleChar()">Test A</button>
+      <button onclick="testTwoChars()">Test A + B</button>
+    </div>
+
+    <div id="debug">
+      <div>Debug Log:</div>
+      <div id="log"></div>
+    </div>
+
+    <script type="module">
+      const canvas = document.getElementById("canvas");
+      const logElement = document.getElementById("log");
+
+      function log(message) {
+        console.log(message);
+        logElement.innerHTML += "<div>" + message + "</div>";
+        logElement.scrollTop = logElement.scrollHeight;
+      }
+
+      // Simple character placement test
+      function placeCharacter(
+        char,
+        x,
+        y,
+        scale,
+        rotation = 0,
+        color = "#FFFFFF"
+      ) {
+        const textElement = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "text"
+        );
+        textElement.setAttribute("x", x);
+        textElement.setAttribute("y", y);
+        textElement.setAttribute("font-family", "Helvetica, sans-serif");
+        textElement.setAttribute("font-size", scale);
+        textElement.setAttribute("text-anchor", "middle");
+        textElement.setAttribute("dominant-baseline", "central");
+        textElement.setAttribute("fill", color);
+        textElement.textContent = char;
+
+        if (rotation !== 0) {
+          textElement.setAttribute(
+            "transform",
+            `rotate(${rotation} ${x} ${y})`
+          );
+        }
+
+        canvas.appendChild(textElement);
+
+        log(
+          `Placed "${char}" at (${x}, ${y}) scale=${scale} rotation=${rotation}°`
+        );
+        return textElement;
+      }
+
+      // Test collision detection
+      function testCollision(char1, char2) {
+        const dx = char1.x - char2.x;
+        const dy = char1.y - char2.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        const minDistance = (char1.scale + char2.scale) * 0.5;
+
+        log(
+          `Distance between chars: ${distance.toFixed(
+            1
+          )}, min required: ${minDistance.toFixed(1)}`
+        );
+        return distance < minDistance;
+      }
+
+      // Find optimal placement for second character
+      function findOptimalPlacement(existingChars, newChar, attempts = 100) {
+        const viewportWidth = window.innerWidth;
+        const viewportHeight = window.innerHeight;
+        let bestPlacement = { x: 0, y: 0, scale: 0, score: 0 };
+
+        log(`Finding optimal placement for "${newChar}", ${attempts} attempts`);
+
+        for (let i = 0; i < attempts; i++) {
+          const x = Math.random() * viewportWidth;
+          const y = Math.random() * viewportHeight;
+          const rotation = Math.random() * 360;
+
+          // Binary search for max scale
+          let maxScale = 10;
+          let low = 10;
+          let high = Math.min(viewportWidth, viewportHeight) * 0.8;
+
+          for (let j = 0; j < 15; j++) {
+            const mid = (low + high) / 2;
+            const hasCollision = checkCollisionAtScale(existingChars, {
+              x,
+              y,
+              scale: mid,
+              rotation,
+            });
+
+            if (hasCollision) {
+              high = mid;
+            } else {
+              low = mid;
+              maxScale = mid;
+            }
+
+            if (high - low < 1) break;
+          }
+
+          if (maxScale > bestPlacement.scale) {
+            bestPlacement = {
+              x,
+              y,
+              scale: maxScale,
+              rotation,
+              score: maxScale,
+            };
+          }
+        }
+
+        log(
+          `Best placement found: scale=${bestPlacement.scale.toFixed(
+            1
+          )} at (${bestPlacement.x.toFixed(1)}, ${bestPlacement.y.toFixed(1)})`
+        );
+        return bestPlacement;
+      }
+
+      function checkCollisionAtScale(existingChars, newChar) {
+        // Check viewport boundaries
+        const margin = 20;
+        if (
+          newChar.x - newChar.scale / 2 < margin ||
+          newChar.x + newChar.scale / 2 > window.innerWidth - margin ||
+          newChar.y - newChar.scale / 2 < margin ||
+          newChar.y + newChar.scale / 2 > window.innerHeight - margin
+        ) {
+          return true;
+        }
+
+        // Check collision with existing characters
+        for (const existing of existingChars) {
+          const dx = newChar.x - existing.x;
+          const dy = newChar.y - existing.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+          const minDistance = (newChar.scale + existing.scale) * 0.4; // Simplified collision
+
+          if (distance < minDistance) {
+            return true;
+          }
+        }
+
+        return false;
+      }
+
+      let characters = [];
+
+      window.clearCanvas = function () {
+        canvas.innerHTML = "";
+        characters = [];
+        logElement.innerHTML = "";
+        log("Canvas cleared");
+      };
+
+      window.testSingleChar = function () {
+        clearCanvas();
+        const scale = Math.min(window.innerWidth, window.innerHeight) * 0.8;
+        const char = placeCharacter(
+          "A",
+          window.innerWidth / 2,
+          window.innerHeight / 2,
+          scale
+        );
+        characters.push({
+          x: window.innerWidth / 2,
+          y: window.innerHeight / 2,
+          scale,
+          element: char,
+        });
+      };
+
+      window.testTwoChars = function () {
+        clearCanvas();
+
+        // Place first character
+        const scale1 = Math.min(window.innerWidth, window.innerHeight) * 0.8;
+        const char1 = placeCharacter(
+          "A",
+          window.innerWidth / 2,
+          window.innerHeight / 2,
+          scale1
+        );
+        characters.push({
+          x: window.innerWidth / 2,
+          y: window.innerHeight / 2,
+          scale: scale1,
+          element: char1,
+        });
+
+        // Find optimal placement for second character
+        const placement = findOptimalPlacement(characters, "B");
+        const char2 = placeCharacter(
+          "B",
+          placement.x,
+          placement.y,
+          placement.scale,
+          placement.rotation,
+          "#00FF00"
+        );
+        characters.push({
+          x: placement.x,
+          y: placement.y,
+          scale: placement.scale,
+          element: char2,
+        });
+      };
+
+      log("Debug test initialized");
+    </script>
+  </body>
+</html>
