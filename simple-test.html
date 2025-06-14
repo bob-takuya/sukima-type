@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Simple Input Test</title>
+    <style>
+      body {
+        background: #000;
+        color: #fff;
+        font-family: monospace;
+        padding: 20px;
+      }
+      button {
+        padding: 10px;
+        margin: 5px;
+        background: #333;
+        color: #fff;
+        border: none;
+        cursor: pointer;
+        border-radius: 4px;
+      }
+      button:hover {
+        background: #555;
+      }
+      #console {
+        background: #111;
+        border: 1px solid #333;
+        padding: 10px;
+        margin: 20px 0;
+        height: 300px;
+        overflow-y: auto;
+        font-size: 12px;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Simple Input Test</h1>
+    <div>
+      <button onclick="testInput.single()">Single (A)</button>
+      <button onclick="testInput.multiple()">Multiple (ABC)</button>
+      <button onclick="testInput.typing()">Typing (HELLO)</button>
+      <button onclick="testInput.status()">Status</button>
+      <button onclick="testInput.clear()">Clear</button>
+    </div>
+
+    <div id="console"></div>
+
+    <script>
+      // Override console.log to show in the page
+      const consoleElement = document.getElementById("console");
+      const originalLog = console.log;
+
+      console.log = function (...args) {
+        originalLog.apply(console, args);
+        const message = args
+          .map((arg) =>
+            typeof arg === "object" ? JSON.stringify(arg, null, 2) : String(arg)
+          )
+          .join(" ");
+
+        const entry = document.createElement("div");
+        entry.style.marginBottom = "5px";
+        entry.style.borderLeft = "2px solid #4CAF50";
+        entry.style.paddingLeft = "5px";
+        entry.textContent = `${new Date().toLocaleTimeString()}: ${message}`;
+
+        consoleElement.appendChild(entry);
+        consoleElement.scrollTop = consoleElement.scrollHeight;
+      };
+    </script>
+
+    <script type="module" src="test-input.js"></script>
+  </body>
+</html>

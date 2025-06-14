@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Minimal Test</title>
+    <style>
+      body {
+        background: #000;
+        color: #fff;
+        font-family: monospace;
+        margin: 0;
+        padding: 20px;
+      }
+      #canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+      }
+      #input {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+        opacity: 0;
+      }
+      #info {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        background: rgba(0, 0, 0, 0.8);
+        padding: 10px;
+        border-radius: 5px;
+        z-index: 10;
+      }
+      #test-buttons {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        z-index: 10;
+      }
+      button {
+        display: block;
+        margin: 5px 0;
+        padding: 10px;
+        background: #333;
+        color: #fff;
+        border: none;
+        cursor: pointer;
+        border-radius: 4px;
+      }
+      button:hover {
+        background: #555;
+      }
+    </style>
+  </head>
+  <body>
+    <svg id="canvas" xmlns="http://www.w3.org/2000/svg"></svg>
+    <input type="text" id="input" autocomplete="off" spellcheck="false" />
+
+    <div id="info">
+      <div>Characters: <span id="char-count">0</span></div>
+      <div>Status: <span id="status">Loading...</span></div>
+    </div>
+
+    <div id="test-buttons">
+      <button onclick="testA()">Test A</button>
+      <button onclick="testABC()">Test ABC</button>
+      <button onclick="testHello()">Test HELLO</button>
+      <button onclick="clearAll()">Clear</button>
+    </div>
+
+    <script type="module">
+      // Simple character tracking
+      let charCount = 0;
+      const characters = new Map();
+
+      // Get elements
+      const svg = document.getElementById("canvas");
+      const input = document.getElementById("input");
+      const charCountEl = document.getElementById("char-count");
+      const statusEl = document.getElementById("status");
+
+      // Setup SVG
+      svg.setAttribute("width", "100%");
+      svg.setAttribute("height", "100%");
+      svg.setAttribute(
+        "viewBox",
+        `0 0 ${window.innerWidth} ${window.innerHeight}`
+      );
+
+      // Add character function
+      function addCharacter(char) {
+        charCount++;
+        const id = `char-${charCount}`;
+
+        // Create SVG text element
+        const textElement = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "text"
+        );
+        textElement.setAttribute("id", id);
+        textElement.setAttribute("x", Math.random() * window.innerWidth);
+        textElement.setAttribute("y", Math.random() * window.innerHeight);
+        textElement.setAttribute("font-family", "Helvetica, sans-serif");
+        textElement.setAttribute("font-size", "50");
+        textElement.setAttribute("fill", "#FFFFFF");
+        textElement.setAttribute("text-anchor", "middle");
+        textElement.setAttribute("dominant-baseline", "central");
+        textElement.textContent = char;
+
+        svg.appendChild(textElement);
+        characters.set(id, { char, element: textElement });
+
+        // Update counter
+        charCountEl.textContent = charCount;
+
+        console.log(`Added character: ${char} (Total: ${charCount})`);
+        return id;
+      }
+
+      // Input handler
+      input.addEventListener("input", (e) => {
+        console.log("Input event:", e.target.value);
+
+        if (e.target.value) {
+          const chars = e.target.value;
+
+          // Process each character
+          for (const char of chars) {
+            if (char.trim()) {
+              addCharacter(char);
+            }
+          }
+
+          // Clear input
+          e.target.value = "";
+        }
+      });
+
+      // Test functions
+      window.testA = () => {
+        console.log("Testing A");
+        input.focus();
+        input.value = "A";
+        input.dispatchEvent(new Event("input"));
+      };
+
+      window.testABC = () => {
+        console.log("Testing ABC");
+        input.focus();
+        input.value = "ABC";
+        input.dispatchEvent(new Event("input"));
+      };
+
+      window.testHello = () => {
+        console.log("Testing HELLO");
+        input.focus();
+        input.value = "HELLO";
+        input.dispatchEvent(new Event("input"));
+      };
+
+      window.clearAll = () => {
+        console.log("Clearing all");
+        svg.innerHTML = "";
+        characters.clear();
+        charCount = 0;
+        charCountEl.textContent = "0";
+      };
+
+      // Auto-focus input
+      input.focus();
+      statusEl.textContent = "Ready";
+
+      // Keep focus
+      document.addEventListener("click", () => {
+        input.focus();
+      });
+
+      console.log("Minimal test ready");
+    </script>
+  </body>
+</html>

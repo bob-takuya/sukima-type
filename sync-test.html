@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Synchronous Algorithm Test</title>
+    <style>
+      body {
+        background: #000;
+        color: #fff;
+        font-family: monospace;
+        margin: 0;
+        padding: 20px;
+      }
+
+      #canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        z-index: 1;
+      }
+
+      #controls {
+        position: fixed;
+        top: 10px;
+        left: 10px;
+        z-index: 100;
+      }
+
+      button {
+        margin: 5px;
+        padding: 10px;
+        background: #333;
+        color: white;
+        border: 1px solid #666;
+        cursor: pointer;
+      }
+
+      #debug {
+        position: fixed;
+        top: 10px;
+        right: 10px;
+        background: rgba(0, 0, 0, 0.8);
+        padding: 10px;
+        border: 1px solid #333;
+        max-width: 400px;
+        font-size: 12px;
+        z-index: 100;
+        max-height: 80vh;
+        overflow-y: auto;
+      }
+    </style>
+  </head>
+  <body>
+    <svg
+      id="canvas"
+      xmlns="http://www.w3.org/2000/svg"
+      width="100%"
+      height="100%"
+      viewBox="0 0 1004 657"
+    ></svg>
+
+    <div id="controls">
+      <button onclick="clearCanvas()">Clear</button>
+      <button onclick="testSync()">Test Sync Algorithm</button>
+    </div>
+
+    <div id="debug">
+      <div>Debug Log:</div>
+      <div id="log"></div>
+    </div>
+
+    <script type="module">
+      const canvas = document.getElementById("canvas");
+      const logElement = document.getElementById("log");
+
+      function log(message) {
+        console.log(message);
+        logElement.innerHTML += "<div>" + message + "</div>";
+        logElement.scrollTop = logElement.scrollHeight;
+      }
+
+      // Simplified nesting algorithm
+      class SimpleNestingAlgorithm {
+        constructor(viewportWidth, viewportHeight) {
+          this.viewportWidth = viewportWidth;
+          this.viewportHeight = viewportHeight;
+        }
+
+        getCharacterDimensions(scale) {
+          const height = scale;
+          const width = scale * 0.7;
+          return { width, height };
+        }
+
+        calculateOptimalPlacement(existingCharacters, newChar) {
+          log(`🎯 calculateOptimalPlacement for "${newChar}"`);
+          log(`📊 Existing characters: ${existingCharacters.length}`);
+
+          if (existingCharacters.length === 0) {
+            const scale =
+              Math.min(this.viewportWidth, this.viewportHeight) * 0.8;
+            log(`🎯 First character, scale: ${scale}`);
+            return {
+              x: this.viewportWidth / 2,
+              y: this.viewportHeight / 2,
+              rotation: 0,
+              scale: scale,
+              score: 1.0,
+            };
+          }
+
+          return this.findBestPlacement(existingCharacters, newChar);
+        }
+
+        findBestPlacement(existingCharacters, newChar) {
+          log("🔍 findBestPlacement starting...");
+
+          let bestPlacement = {
+            x: this.viewportWidth / 2,
+            y: this.viewportHeight / 2,
+            rotation: 0,
+            scale: 10,
+            score: 0,
+          };
+
+          const attempts = 100;
+          log(`🎲 Testing ${attempts} positions`);
+
+          for (let i = 0; i < attempts; i++) {
+            const x = Math.random() * this.viewportWidth;
+            const y = Math.random() * this.viewportHeight;
+            const rotation = Math.random() * 360;
+
+            const maxScale = this.calculateMaxScale(
+              existingCharacters,
+              newChar,
+              x,
+              y,
+              rotation
+            );
+
+            if (maxScale > bestPlacement.scale) {
+              bestPlacement = {
+                x,
+                y,
+                rotation,
+                scale: maxScale,
+                score: maxScale,
+              };
+              log(
+                `🎯 New best: scale=${maxScale.toFixed(1)} at (${x.toFixed(
+                  1
+                )}, ${y.toFixed(1)})`
+              );
+            }
+          }
+
+          if (bestPlacement.scale < 20) {
+            bestPlacement.scale = 20;
+          }
+
+          log(`📐 Final: scale=${bestPlacement.scale.toFixed(1)}`);
+          return bestPlacement;
+        }
+
+        calculateMaxScale(existingCharacters, newChar, x, y, rotation) {
+          const maxPossibleScale =
+            Math.min(this.viewportWidth, this.viewportHeight) * 0.8;
+          let maxScale = 0;
+
+          let low = 10;
+          let high = maxPossibleScale;
+
+          for (let i = 0; i < 10; i++) {
+            const mid = (low + high) / 2;
+
+            if (
+              this.checkCollision(
+                existingCharacters,
+                newChar,
+                x,
+                y,
+                rotation,
+                mid
+              )
+            ) {
+              high = mid;
+            } else {
+              low = mid;
+              maxScale = mid;
+            }
+
+            if (high - low < 2) break;
+          }
+
+          return maxScale;
+        }
+
+        checkCollision(existingCharacters, newChar, x, y, rotation, scale) {
+          // Boundary check
+          const dims = this.getCharacterDimensions(scale);
+          const margin = 20;
+
+          if (
+            x - dims.width / 2 < margin ||
+            x + dims.width / 2 > this.viewportWidth - margin ||
+            y - dims.height / 2 < margin ||
+            y + dims.height / 2 > this.viewportHeight - margin
+          ) {
+            return true;
+          }
+
+          // Character collision check
+          for (const existing of existingCharacters) {
+            const dx = x - existing.x;
+            const dy = y - existing.y;
+            const distance = Math.sqrt(dx * dx + dy * dy);
+            const minDistance = (scale + existing.scale) * 0.4;
+
+            if (distance < minDistance) {
+              return true;
+            }
+          }
+
+          return false;
+        }
+      }
+
+      let characters = [];
+      let algorithm = new SimpleNestingAlgorithm(
+        window.innerWidth,
+        window.innerHeight
+      );
+
+      function placeCharacter(
+        char,
+        x,
+        y,
+        scale,
+        rotation = 0,
+        color = "#FFFFFF"
+      ) {
+        const textElement = document.createElementNS(
+          "http://www.w3.org/2000/svg",
+          "text"
+        );
+        textElement.setAttribute("x", x);
+        textElement.setAttribute("y", y);
+        textElement.setAttribute("font-family", "Helvetica, sans-serif");
+        textElement.setAttribute("font-size", scale);
+        textElement.setAttribute("text-anchor", "middle");
+        textElement.setAttribute("dominant-baseline", "central");
+        textElement.setAttribute("fill", color);
+        textElement.textContent = char;
+
+        if (rotation !== 0) {
+          textElement.setAttribute(
+            "transform",
+            `rotate(${rotation} ${x} ${y})`
+          );
+        }
+
+        canvas.appendChild(textElement);
+
+        log(
+          `✅ Placed "${char}" at (${x.toFixed(1)}, ${y.toFixed(
+            1
+          )}) scale=${scale.toFixed(1)}`
+        );
+        return { char, x, y, scale, rotation, element: textElement };
+      }
+
+      window.clearCanvas = function () {
+        canvas.innerHTML = "";
+        characters = [];
+        logElement.innerHTML = "";
+        log("Canvas cleared");
+      };
+
+      window.testSync = function () {
+        log("=== Starting Sync Test ===");
+
+        const testChars = ["A", "B", "C"];
+
+        for (const char of testChars) {
+          log(`--- Processing "${char}" ---`);
+          const placement = algorithm.calculateOptimalPlacement(
+            characters,
+            char
+          );
+          const charObj = placeCharacter(
+            char,
+            placement.x,
+            placement.y,
+            placement.scale,
+            placement.rotation
+          );
+          characters.push(charObj);
+          log(`--- "${char}" completed ---`);
+        }
+
+        log("=== Test completed ===");
+      };
+
+      log("Sync test initialized");
+    </script>
+  </body>
+</html>

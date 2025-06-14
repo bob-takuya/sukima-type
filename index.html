@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Typographic Nesting Art Generator</title>
+    <style>
+      * {
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+      }
+
+      body {
+        background-color: #000000;
+        color: #ffffff;
+        font-family: Helvetica, "Hiragino Kaku Gothic ProN",
+          "ヒラギノ角ゴ ProN W3", Meiryo, sans-serif;
+        overflow: hidden;
+        height: 100vh;
+        width: 100vw;
+        cursor: text;
+      }
+
+      body.typing {
+        cursor: text;
+      }
+
+      #canvas-container {
+        position: relative;
+        width: 100vw;
+        height: 100vh;
+      }
+
+      #text-canvas {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+      }
+
+      #input-handler {
+        position: absolute;
+        top: -9999px;
+        left: -9999px;
+        opacity: 0;
+        width: 1px;
+        height: 1px;
+        font-size: 16px;
+      }
+
+      .character {
+        position: absolute;
+        user-select: none;
+        pointer-events: none;
+        transform-origin: center center;
+        transition: color 0.3s ease;
+      }
+
+      .character.confirmed {
+        color: #ffffff;
+      }
+
+      .character.composing {
+        color: #808080;
+      }
+
+      #loading {
+        position: fixed;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        color: #ffffff;
+        font-size: 18px;
+        z-index: 1000;
+      }
+
+      /* Instructions overlay */
+      #instructions {
+        position: fixed;
+        bottom: 20px;
+        left: 20px;
+        color: #666666;
+        font-size: 14px;
+        z-index: 100;
+        opacity: 0.7;
+        transition: opacity 0.3s ease;
+      }
+
+      #instructions:hover {
+        opacity: 1;
+      }
+
+      /* Character count display */
+      #info {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        color: #666666;
+        font-size: 12px;
+        z-index: 100;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="loading">Loading fonts...</div>
+    <div id="canvas-container">
+      <svg id="text-canvas" xmlns="http://www.w3.org/2000/svg"></svg>
+      <input
+        type="text"
+        id="input-handler"
+        autocomplete="off"
+        spellcheck="false"
+      />
+    </div>
+
+    <div id="instructions">
+      文字を入力してください / Start typing to create typographic art<br />
+      日本語入力対応 / Japanese IME supported<br />
+      <small
+        >Delete/Backspace: 文字削除 / Delete character • ESC: キャンセル /
+        Cancel • ⌘+R: 全削除 / Clear all</small
+      >
+    </div>
+
+    <div id="info">
+      <span id="char-count">Characters: 0</span><br />
+      <span id="performance">Status: Ready</span>
+    </div>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
