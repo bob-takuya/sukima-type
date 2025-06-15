@@ -254,14 +254,14 @@ describe('Typographic Nesting App - Integration Tests', () => {
         const mockWorker = {
           postMessage: vi.fn(),
           terminate: vi.fn(),
-          onmessage: null,
-          onerror: null
+          onmessage: null as ((this: Worker, ev: MessageEvent) => any) | null,
+          onerror: null as ((this: AbstractWorker, ev: ErrorEvent) => any) | null
         };
         
         // エラーを即座に発火
         setTimeout(() => {
           if (mockWorker.onerror) {
-            mockWorker.onerror(new ErrorEvent('error', { 
+            mockWorker.onerror.call(mockWorker as any, new ErrorEvent('error', { 
               message: 'Worker failed to load' 
             }));
           }

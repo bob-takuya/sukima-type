@@ -8,18 +8,21 @@ Object.defineProperty(window, 'location', {
   }
 });
 
-// SVG要素のモック
-global.SVGElement = class MockSVGElement {
+// SVG要素のモック - 型エラーを避けるためanyを使用
+(global as any).SVGElement = class MockSVGElement {
   setAttribute() {}
   getAttribute() { return null; }
   removeAttribute() {}
-  appendChild() {}
-  removeChild() {}
-  style = {};
+  appendChild(node: any) { return node; }
+  removeChild(node: any) { return node; }
+  style = {} as any;
+  ownerSVGElement = null;
+  viewportElement = null;
+  className = '';
 };
 
 // Web Worker のモック
-global.Worker = vi.fn().mockImplementation(() => ({
+(global as any).Worker = vi.fn().mockImplementation(() => ({
   postMessage: vi.fn(),
   terminate: vi.fn(),
   onmessage: null,
@@ -27,21 +30,30 @@ global.Worker = vi.fn().mockImplementation(() => ({
 }));
 
 // CompositionEvent のモック
-global.CompositionEvent = class MockCompositionEvent extends Event {
+(global as any).CompositionEvent = class MockCompositionEvent extends Event {
   data: string;
+  detail: any;
+  view: any;
+  which: number;
   constructor(type: string, options: { data?: string } = {}) {
     super(type);
     this.data = options.data || '';
+    this.detail = null;
+    this.view = null;
+    this.which = 0;
   }
+  initCompositionEvent() {}
+  initUIEvent() {}
 };
 
 // CustomEvent のモック
-global.CustomEvent = class MockCustomEvent extends Event {
+(global as any).CustomEvent = class MockCustomEvent extends Event {
   detail: any;
   constructor(type: string, options: { detail?: any } = {}) {
     super(type);
     this.detail = options.detail;
   }
+  initCustomEvent() {}
 };
 
 // requestAnimationFrame のモック
@@ -51,8 +63,10 @@ global.requestAnimationFrame = vi.fn((cb) => {
 });
 
 // SVG namespace のモック
-document.createElementNS = vi.fn((namespace, tagName) => {
+(document as any).createElementNS = vi.fn((namespace, tagName) => {
   const element = document.createElement(tagName);
+  (element as any).ownerSVGElement = null;
+  (element as any).viewportElement = null;
   return element;
 });
 
