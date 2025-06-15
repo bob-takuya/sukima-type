@@ -4,7 +4,7 @@
 
 ## 🎨 デモサイト
 
-https://bob-takuya.github.io/ichimatsu_gen/
+https://bob-takuya.github.io/sukima-type/
 
 ## 🚀 セットアップ
 
