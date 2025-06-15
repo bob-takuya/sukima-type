@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { TypographicRenderer } from '../typographicRenderer';
-import { Character } from '../types';
+import { TypographicRenderer } from '../typographicRenderer.js';
+import { Character } from '../types.js';
 
 describe('TypographicRenderer', () => {
   let renderer: TypographicRenderer;
@@ -20,7 +20,10 @@ describe('TypographicRenderer', () => {
   });
 
   afterEach(() => {
-    document.body.removeChild(svgElement);
+    // クリーンアップ - 要素が存在する場合のみ削除
+    if (svgElement && svgElement.parentNode) {
+      svgElement.parentNode.removeChild(svgElement);
+    }
     vi.clearAllMocks();
   });
 

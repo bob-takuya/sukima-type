@@ -53,14 +53,17 @@ describe('Typographic Nesting App - Integration Tests', () => {
   beforeEach(() => {
     createFullMockDOM();
     
-    // document.fonts.ready をモック
-    Object.defineProperty(document, 'fonts', {
-      value: { ready: Promise.resolve() }
-    });
+    // document.fonts.ready をモック（存在しない場合のみ）
+    if (!document.fonts) {
+      Object.defineProperty(document, 'fonts', {
+        value: { ready: Promise.resolve() },
+        configurable: true
+      });
+    }
     
     // ウィンドウサイズをモック
-    Object.defineProperty(window, 'innerWidth', { value: 1000 });
-    Object.defineProperty(window, 'innerHeight', { value: 800 });
+    Object.defineProperty(window, 'innerWidth', { value: 1000, configurable: true });
+    Object.defineProperty(window, 'innerHeight', { value: 800, configurable: true });
   });
 
   afterEach(() => {
@@ -250,20 +253,20 @@ describe('Typographic Nesting App - Integration Tests', () => {
     it('Web Worker エラーの処理', async () => {
       // Web Worker のエラーをシミュレート
       const originalWorker = global.Worker;
-      global.Worker = vi.fn().mockImplementation(() => {
-        const mockWorker = {
+      global.Worker = vi.fn().mockImplementation(() => {        const mockWorker: any = {
           postMessage: vi.fn(),
           terminate: vi.fn(),
           onmessage: null,
           onerror: null
         };
-        
+
         // エラーを即座に発火
         setTimeout(() => {
           if (mockWorker.onerror) {
-            mockWorker.onerror(new ErrorEvent('error', { 
+            const errorEvent = new ErrorEvent('error', { 
               message: 'Worker failed to load' 
-            }));
+            });
+            mockWorker.onerror(errorEvent);
           }
         }, 100);
         
