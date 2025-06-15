@@ -23,7 +23,21 @@ export class TypographicNestingApp {
       descender: -200
     };
 
+    // Check for required DOM elements synchronously
+    this.validateRequiredElements();
     this.initializeApp();
+  }
+
+  private validateRequiredElements(): void {
+    const svgElement = document.getElementById('text-canvas');
+    if (!svgElement) {
+      throw new Error('Canvas element not found');
+    }
+    
+    const inputElement = document.getElementById('input-handler');
+    if (!inputElement) {
+      throw new Error('Input element not found');
+    }
   }
 
   private async initializeApp(): Promise<void> {
@@ -31,6 +45,7 @@ export class TypographicNestingApp {
       await this.initializeComponents();
       await this.loadFonts();
       this.hideLoading();
+      this.updateCharacterCount(); // Initialize UI counters
       this.isInitialized = true;
       console.log('Typographic Nesting Art Generator initialized');
     } catch (error) {
@@ -79,11 +94,23 @@ export class TypographicNestingApp {
   }
 
   private async loadFonts(): Promise<void> {
-    // フォントの読み込み完了を待つ
-    await document.fonts.ready;
-    
-    // カスタムフォントが必要な場合はここで読み込み
-    // 現在はシステムフォントを使用
+    try {
+      // フォントの読み込み完了を待つ（タイムアウト付き）
+      const fontLoadTimeout = new Promise((_, reject) => 
+        setTimeout(() => reject(new Error('Font loading timeout')), 5000)
+      );
+      
+      await Promise.race([
+        document.fonts.ready,
+        fontLoadTimeout
+      ]);
+      
+      console.log('✅ Fonts loaded successfully');
+    } catch (error) {
+      console.warn('⚠️ Font loading warning:', error);
+      // フォント読み込みに失敗してもアプリケーションは続行
+      // システムフォントを使用
+    }
   }
 
   private hideLoading(): void {
@@ -148,6 +175,9 @@ export class TypographicNestingApp {
     this.characters.set(characterId, newCharacter);
     console.log('📊 Characters after add:', this.characters.size);
     
+    // Update character count immediately
+    this.updateCharacterCount();
+    
     // 最初の文字の場合は画面中央に最大サイズで配置
     if (this.characters.size === 1) {
       const baseScale = Math.min(window.innerWidth, window.innerHeight) * 0.8;
@@ -157,7 +187,6 @@ export class TypographicNestingApp {
       newCharacter.rotation = 0;
       this.renderer.addOrUpdateCharacter(newCharacter);
       console.log('🎨 First character rendered at full size:', newCharacter);
-      this.updateCharacterCount();
     } else {
       // 2文字目以降は最適化アルゴリズムによってのみ配置
       console.log('🧮 Calculating optimal placement for character:', newCharacter.char);
@@ -165,7 +194,9 @@ export class TypographicNestingApp {
       
       // 最適化が完了するまで、この文字はレンダリングしない
       // calculateLayoutの結果でのみレンダリングされる
-      this.calculateLayout(newCharacter);
+      this.calculateLayout(newCharacter).catch(error => {
+        console.error('💥 Layout calculation failed:', error);
+      });
     }
   }
 
@@ -262,8 +293,8 @@ export class TypographicNestingApp {
     }
   }
 
-  private calculateLayout(newCharacter: Character): void {
-    console.log('🧮 Calculating layout SYNCHRONOUSLY for:', newCharacter);
+  private async calculateLayout(newCharacter: Character): Promise<void> {
+    console.log('🧮 Calculating layout ASYNCHRONOUSLY for:', newCharacter);
     
     if (this.pendingCalculations.has(newCharacter.id)) {
       console.log('⏳ Calculation already pending for:', newCharacter.id);
@@ -271,7 +302,7 @@ export class TypographicNestingApp {
     }
 
     this.pendingCalculations.add(newCharacter.id);
-    console.log('🔄 Starting synchronous calculation');
+    console.log('🔄 Starting asynchronous calculation');
 
     try {
       // Get existing characters (excluding the new one)
@@ -281,19 +312,19 @@ export class TypographicNestingApp {
         char: c.char, x: c.x, y: c.y, scale: c.scale
       })));
 
-      // Calculate optimal placement synchronously
+      // Calculate optimal placement asynchronously
       const startTime = performance.now();
-      const placement = this.nestingAlgorithm.calculateOptimalPlacement(existingCharacters, newCharacter.char);
+      const placement = await this.nestingAlgorithm.calculateOptimalPlacement(existingCharacters, newCharacter.char);
       const endTime = performance.now();
       
-      console.log('✅ Synchronous calculation completed in', (endTime - startTime).toFixed(2), 'ms');
+      console.log('✅ Async calculation completed in', (endTime - startTime).toFixed(2), 'ms');
       console.log('📍 Placement result:', placement);
 
       // Apply the result immediately
       this.applyLayoutResult(newCharacter.id, placement);
       
     } catch (error) {
-      console.error('💥 Synchronous layout calculation error:', error);
+      console.error('💥 Asynchronous layout calculation error:', error);
       
       // Fallback placement
       const fallbackPlacement = {
@@ -344,9 +375,6 @@ export class TypographicNestingApp {
     console.log('🖼️ About to render character with scale:', targetCharacter.scale);
     this.renderer.addOrUpdateCharacter(targetCharacter);
     console.log('✅ Character rendered successfully');
-    
-    // Update character count
-    this.updateCharacterCount();
 
     // Handle composing characters if needed
     if (!targetCharacter.isComposing) {

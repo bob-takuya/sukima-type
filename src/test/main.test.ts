@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { TypographicNestingApp } from '../main';
+import { TypographicNestingApp } from '../main.js';
 
 // DOM要素のモック
 const createMockDOM = () => {

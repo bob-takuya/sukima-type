@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
-import { InputManager } from '../inputManager';
-import { CompositionState } from '../types';
+import { InputManager } from '../inputManager.js';
+import { CompositionState } from '../types.js';
 
 describe('InputManager', () => {
   let inputElement: HTMLInputElement;
@@ -14,6 +14,61 @@ describe('InputManager', () => {
     inputElement = document.createElement('input');
     inputElement.type = 'text';
     inputElement.id = 'test-input';
+    
+    // イベント系のプロパティをセットアップ
+    const eventListeners = new Map<string, Function[]>();
+    
+    inputElement.focus = vi.fn();
+    
+    // addEventListener をモック（実際にハンドラーを保存）
+    (inputElement.addEventListener as any) = vi.fn((type: string, handler: any) => {
+      if (!eventListeners.has(type)) {
+        eventListeners.set(type, []);
+      }
+      eventListeners.get(type)!.push(handler);
+    });
+    
+    inputElement.removeEventListener = vi.fn();
+    
+    // dispatchEventを実際にイベントハンドラーを呼び出すようにオーバーライド
+    (inputElement.dispatchEvent as any) = vi.fn((event: Event) => {
+      const handlers = eventListeners.get(event.type);
+      if (handlers) {
+        handlers.forEach(handler => {
+          try {
+            handler(event);
+          } catch (error) {
+            console.error('Error in event handler:', error);
+          }
+        });
+      }
+      return true;
+    });
+    
+    // document にイベントシステムを追加（clearAll イベント用）
+    const documentEventListeners = new Map<string, Function[]>();
+    
+    (document.addEventListener as any) = vi.fn((type: string, handler: any) => {
+      if (!documentEventListeners.has(type)) {
+        documentEventListeners.set(type, []);
+      }
+      documentEventListeners.get(type)!.push(handler);
+    });
+    
+    (document.dispatchEvent as any) = vi.fn((event: Event) => {
+      const handlers = documentEventListeners.get(event.type);
+      if (handlers) {
+        handlers.forEach(handler => {
+          try {
+            handler(event);
+          } catch (error) {
+            console.error('Error in event handler:', error);
+          }
+        });
+      }
+      return true;
+    });
+    
     document.body.appendChild(inputElement);
 
     // モック関数を作成
@@ -26,8 +81,10 @@ describe('InputManager', () => {
   });
 
   afterEach(() => {
-    // クリーンアップ
-    document.body.removeChild(inputElement);
+    // クリーンアップ - 要素が存在する場合のみ削除
+    if (inputElement && inputElement.parentNode) {
+      inputElement.parentNode.removeChild(inputElement);
+    }
     vi.clearAllMocks();
   });
 

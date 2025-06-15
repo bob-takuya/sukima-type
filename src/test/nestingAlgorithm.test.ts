@@ -1,6 +1,25 @@
-import { describe, it, expect, beforeEach } from 'vitest';
-import { NestingAlgorithm } from '../nestingAlgorithm';
-import { Character, FontMetrics } from '../types';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { NestingAlgorithm } from '../nestingAlgorithm.js';
+import { Character, FontMetrics } from '../types.js';
+
+// テスト用のSVGPathAnalyzerモック
+vi.mock('../svgPathAnalyzer.js', () => ({
+  SVGPathAnalyzer: vi.fn().mockImplementation(() => ({
+    analyzeCharacterShape: vi.fn(() => ({
+      boundingBox: { x: 0, y: 0, width: 100, height: 100 },
+      pathCommands: [],
+      polygonApproximation: [
+        { x: 0, y: 0 },
+        { x: 100, y: 0 },
+        { x: 100, y: 100 },
+        { x: 0, y: 100 }
+      ],
+      area: 10000,
+      centroid: { x: 50, y: 50 }
+    })),
+    checkPathCollision: vi.fn(() => false)
+  }))
+}));
 
 describe('NestingAlgorithm', () => {
   let algorithm: NestingAlgorithm;
@@ -19,8 +38,8 @@ describe('NestingAlgorithm', () => {
   });
 
   describe('最初の文字の配置', () => {
-    it('画面中央に大きなサイズで配置される', () => {
-      const result = algorithm.calculateOptimalPlacement([], 'A');
+    it('画面中央に大きなサイズで配置される', async () => {
+      const result = await algorithm.calculateOptimalPlacement([], 'A');
       
       expect(result.x).toBe(viewportWidth / 2);
       expect(result.y).toBe(viewportHeight / 2);
@@ -29,12 +48,12 @@ describe('NestingAlgorithm', () => {
       expect(result.score).toBe(1.0);
     });
 
-    it('異なる画面サイズでも適切にスケールされる', () => {
+    it('異なる画面サイズでも適切にスケールされる', async () => {
       const smallAlgorithm = new NestingAlgorithm(400, 300, fontMetrics);
       const largeAlgorithm = new NestingAlgorithm(2000, 1500, fontMetrics);
       
-      const smallResult = smallAlgorithm.calculateOptimalPlacement([], 'A');
-      const largeResult = largeAlgorithm.calculateOptimalPlacement([], 'A');
+      const smallResult = await smallAlgorithm.calculateOptimalPlacement([], 'A');
+      const largeResult = await largeAlgorithm.calculateOptimalPlacement([], 'A');
       
       expect(smallResult.scale).toBeLessThan(largeResult.scale);
     });
@@ -55,8 +74,8 @@ describe('NestingAlgorithm', () => {
       };
     });
 
-    it('既存の文字と重ならない位置に配置される', () => {
-      const result = algorithm.calculateOptimalPlacement([existingCharacter], 'B');
+    it('既存の文字と重ならない位置に配置される', async () => {
+      const result = await algorithm.calculateOptimalPlacement([existingCharacter], 'B');
       
       expect(result.x).toBeDefined();
       expect(result.y).toBeDefined();
@@ -204,7 +223,7 @@ describe('NestingAlgorithm', () => {
   });
 
   describe('全文字再配置', () => {
-    it('確定文字は位置が保持される', () => {
+    it('確定文字は位置が保持される', async () => {
       const confirmedChar: Character = {
         id: 'confirmed-1',
         char: 'A',
@@ -225,7 +244,7 @@ describe('NestingAlgorithm', () => {
         isComposing: true
       };
       
-      const result = algorithm.recalculateAllPlacements([confirmedChar, composingChar]);
+      const result = await algorithm.recalculateAllPlacements([confirmedChar, composingChar]);
       
       // 確定文字は元の位置を保持
       const resultConfirmed = result.find(c => c.id === 'confirmed-1');
@@ -238,8 +257,8 @@ describe('NestingAlgorithm', () => {
       expect(resultComposing?.isComposing).toBe(true);
     });
 
-    it('空の配列を処理しても問題ない', () => {
-      const result = algorithm.recalculateAllPlacements([]);
+    it('空の配列を処理しても問題ない', async () => {
+      const result = await algorithm.recalculateAllPlacements([]);
       expect(result).toEqual([]);
     });
   });

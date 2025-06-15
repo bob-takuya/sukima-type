@@ -1,14 +1,19 @@
-import { Character, PlacementResult, FontMetrics } from './types.js';
+import { Character, PlacementResult, FontMetrics, ShapeAnalysis } from './types.js';
+import { SVGPathAnalyzer } from './svgPathAnalyzer.js';
+import { SVGNestGeometry } from './svgNestGeometry.js';
 
 export class NestingAlgorithm {
   private viewportWidth: number;
   private viewportHeight: number;
   private fontMetrics: FontMetrics;
+  private pathAnalyzer: SVGPathAnalyzer;
+  private characterShapeCache: Map<string, ShapeAnalysis> = new Map();
 
   constructor(viewportWidth: number, viewportHeight: number, fontMetrics: FontMetrics) {
     this.viewportWidth = viewportWidth;
     this.viewportHeight = viewportHeight;
     this.fontMetrics = fontMetrics;
+    this.pathAnalyzer = new SVGPathAnalyzer();
   }
 
   /**
@@ -27,7 +32,7 @@ export class NestingAlgorithm {
   }
 
   /**
-   * 新しい文字の最適な配置を計算する
+   * 新しい文字の最適な配置を計算する - SVGNest手法使用
    */
   calculateOptimalPlacement(
     existingCharacters: Character[],
@@ -193,11 +198,11 @@ export class NestingAlgorithm {
   }
 
   /**
-   * 文字の衝突判定
+   * 文字の衝突判定 - SVGNest手法による正確な判定
    */
   private checkCollision(
     existingCharacters: Character[],
-    _newChar: string,
+    newChar: string,
     x: number,
     y: number,
     rotation: number,
@@ -218,22 +223,45 @@ export class NestingAlgorithm {
     const margin = 20; // 境界から余裕を持たせる
     if (x - rotatedWidth/2 < margin || x + rotatedWidth/2 > this.viewportWidth - margin ||
         y - rotatedHeight/2 < margin || y + rotatedHeight/2 > this.viewportHeight - margin) {
-      // console.log(`💥 Boundary collision at scale ${scale}`);
       return true;
     }
 
-    // 既存の文字との衝突チェック
+    // 新しい文字の形状を解析（キャッシュから取得またはキャッシュに保存）
+    let newCharShape = this.characterShapeCache.get(newChar);
+    if (!newCharShape) {
+      newCharShape = this.pathAnalyzer.analyzeCharacterShape(newChar, 100); // 基準サイズで解析
+      if (newCharShape) {
+        this.characterShapeCache.set(newChar, newCharShape);
+      }
+    }
+
+    const newCharTransform = { x, y, rotation, scale: scale / 100 }; // スケール調整
+
+    // 既存の文字との衝突チェック（SVGNest手法）
     for (const existingChar of existingCharacters) {
-      if (this.charactersOverlap(
-        { x, y, scale, rotation },
-        { 
-          x: existingChar.x, 
-          y: existingChar.y, 
-          scale: existingChar.scale, 
-          rotation: existingChar.rotation 
+      let existingCharShape = this.characterShapeCache.get(existingChar.char);
+      if (!existingCharShape) {
+        existingCharShape = this.pathAnalyzer.analyzeCharacterShape(existingChar.char, 100);
+        if (existingCharShape) {
+          this.characterShapeCache.set(existingChar.char, existingCharShape);
         }
+      }
+
+      const existingCharTransform = {
+        x: existingChar.x,
+        y: existingChar.y,
+        rotation: existingChar.rotation,
+        scale: existingChar.scale / 100
+      };
+
+      // SVGNestアルゴリズムによる正確な衝突検出
+      if (newCharShape && existingCharShape && this.pathAnalyzer.checkPathCollision(
+        newCharShape,
+        newCharTransform,
+        existingCharShape,
+        existingCharTransform,
+        5 // マージン
       )) {
-        // console.log(`💥 Character collision with existing char "${existingChar.char}" at scale ${scale}`);
         return true;
       }
     }

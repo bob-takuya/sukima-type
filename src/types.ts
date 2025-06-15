@@ -51,3 +51,29 @@ export interface LayoutResultMessage {
   placement: PlacementResult;
   characters: Character[];
 }
+
+// Geometric types for SVGNest collision detection
+export interface Point {
+  x: number;
+  y: number;
+}
+
+export interface BoundingBox {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+export interface PathCommand {
+  type: string;
+  points: number[];
+}
+
+export interface ShapeAnalysis {
+  boundingBox: BoundingBox;
+  pathCommands: PathCommand[];
+  polygonApproximation: Point[];
+  area: number;
+  centroid: Point;
+}
